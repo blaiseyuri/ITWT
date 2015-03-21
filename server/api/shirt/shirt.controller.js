@@ -22,11 +22,38 @@ exports.show = function(req, res) {
 
 // Creates a new shirt in the DB.
 exports.create = function(req, res) {
-  console.log(req.body);
-  Shirt.create(req.body, function(err, shirt) {
-    if(err) { return handleError(res, err); }
-    return res.json(201, shirt);
+  var fs = require('fs');
+  var path = require('path');
+  var newShirt = {};
+  
+  req.busboy.on('field', function(fieldname, val) {
+    console.log(fieldname, val);
+    newShirt[fieldname] = val;
+    });
+
+  req.busboy.on('finish', function(please) {
+
+    Shirt.create(newShirt, function(err, shirt) {
+      if(err) { return handleError(res, err); }
+      console.log(shirt);
+      req.busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
+        var fileExtension = filename.split('.').pop();
+        var shirtID = shirt._id.toString();
+        var fstream = fs.createWriteStream(path.join(__dirname,'..' , '..', 'uploads/images', shirtID + '.' + fileExtension));
+          file.pipe(fstream);
+          fstream.on('close', function () {
+            res.send(200);
+          });
+      });
+  
+  req.pipe(req.busboy);
   });
+  })
+
+  req.pipe(req.busboy);
+
+
+
 };
 
 // Updates an existing shirt in the DB.
