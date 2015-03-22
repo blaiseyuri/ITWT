@@ -25,35 +25,69 @@ exports.create = function(req, res) {
   var fs = require('fs');
   var path = require('path');
   var newShirt = {};
+  var fileExtension, file;
   
   req.busboy.on('field', function(fieldname, val) {
-    console.log(fieldname, val);
+    console.log('on field');
     newShirt[fieldname] = val;
     });
 
-  req.busboy.on('finish', function(please) {
+  req.busboy.on('file', function(fieldname, _file, filename, encoding, mimetype) {
+    console.log('on file');
+    fileExtension = filename.split('.').pop();
+    file = _file
+    file.resume()
+  });
 
+  req.busboy.on('finish', function(please) {
+    console.log('on finish')
     Shirt.create(newShirt, function(err, shirt) {
       if(err) { return handleError(res, err); }
       console.log(shirt);
-      req.busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
-        var fileExtension = filename.split('.').pop();
-        var shirtID = shirt._id.toString();
-        var fstream = fs.createWriteStream(path.join(__dirname,'..' , '..', 'uploads/images', shirtID + '.' + fileExtension));
-          file.pipe(fstream);
-          fstream.on('close', function () {
-            res.send(200);
-          });
+      console.log(file)
+      var shirtID = shirt.name
+      var fstream = fs.createWriteStream(path.join(__dirname,'..' , '..', 'uploads/images/shirts', shirtID + '.' + fileExtension));
+        file.pipe(fstream);
+        fstream.on('error', function(err) {
+          console.log(err);
+        })
+        fstream.on('close', function () {
+          res.send(200);
+        });
       });
   
-  req.pipe(req.busboy);
   });
-  })
 
   req.pipe(req.busboy);
 
 
 
+};
+
+exports.easy = function(req, res) {
+
+  var body = {};
+
+  req.busboy.on('field', function(fieldname, val) {
+    console.log('on field');
+    body[fieldname] = val;
+    });
+  
+  req.busboy.on('finish', function() {
+    console.log(body);
+   var newShirt = {
+      name: body.name,
+      color: body.color,
+      url: "uploads/images/shirts/" + body.name + '.jpg',
+      type: "shirt"
+    }
+
+    Shirt.create(newShirt, function(err, shirt) {
+      if(err) { return handleError(res, err); }
+      res.send(200)
+      });
+    });
+  req.pipe(req.busboy);
 };
 
 // Updates an existing shirt in the DB.
