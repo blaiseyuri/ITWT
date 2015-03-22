@@ -78,7 +78,7 @@ exports.easy = function(req, res) {
    var newShirt = {
       name: body.name,
       color: body.color,
-      url: "uploads/images/shirts/" + body.name + '.jpg',
+      url: "uploads/images/shirts/" + body.name + '_720.png',
       type: "shirt"
     }
 
